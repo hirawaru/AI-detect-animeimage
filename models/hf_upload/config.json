@@ -1,0 +1,17 @@
+{
+  "architectures": ["EfficientNetForImageClassification"],
+  "model_type": "efficientnet",
+  "num_labels": 2,
+  "id2label": {
+    "0": "Natural",
+    "1": "Synthetic"
+  },
+  "label2id": {
+    "Natural": 0,
+    "Synthetic": 1
+  },
+  "image_size": 224,
+  "dropout_rate": 0.3,
+  "torch_dtype": "float32",
+  "transformers_version": "4.35.0"
+}

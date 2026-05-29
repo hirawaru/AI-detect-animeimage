@@ -1,0 +1,16 @@
+# Ignore dataset and virtualenv to keep build context small
+data/
+.venv/
+venv/
+env/
+__pycache__/
+.git/
+.vscode/
+results/
+notebooks/
+*.pyc
+*.pkl
+*.pt
+*.pth
+models/checkpoints/
+models/final_model.pth

@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-multipart
+Pillow
+requests
+numpy<2
+filelock
+fsspec
+jinja2
+networkx
+sympy
+typing-extensions
+huggingface_hub
+

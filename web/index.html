@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Image Detection</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+      border-bottom: 1px solid #2d3748;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header .logo { font-size: 28px; }
+    header h1 { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; }
+    header p  { font-size: 0.8rem; color: #718096; margin-top: 2px; }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #1a1f2e;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      width: fit-content;
+    }
+    .tab-btn {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: #718096;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all .2s;
+    }
+    .tab-btn.active {
+      background: #3182ce;
+      color: #fff;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #90cdf4;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed #4a5568;
+      border-radius: 10px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #3182ce;
+      background: rgba(49,130,206,.06);
+    }
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-zone .icon { font-size: 40px; margin-bottom: 10px; }
+    .upload-zone p { color: #718096; font-size: 0.9rem; }
+    .upload-zone p span { color: #63b3ed; }
+
+    /* ── Preview ── */
+    #preview-wrap {
+      display: none;
+      margin-top: 16px;
+      text-align: center;
+    }
+    #preview-img {
+      max-height: 260px;
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #2d3748;
+    }
+
+    /* ── Button ── */
+    .btn-predict {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      background: #3182ce;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-predict:hover:not(:disabled) { background: #2b6cb0; }
+    .btn-predict:disabled { background: #4a5568; cursor: not-allowed; }
+
+    /* ── Result box ── */
+    #result-box { display: none; margin-top: 20px; }
+
+    .result-label {
+      font-size: 1.6rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .result-label.natural  { background: rgba(72,187,120,.15); color: #68d391; border: 1px solid #48bb78; }
+    .result-label.synthetic { background: rgba(252,129,74,.15); color: #fc8149; border: 1px solid #fc8149; }
+    .result-label.error    { background: rgba(245,101,101,.15); color: #fc8181; border: 1px solid #fc8181; }
+
+    /* ── Probability bars ── */
+    .prob-row { margin-bottom: 10px; }
+    .prob-row .label-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.85rem; color: #a0aec0; margin-bottom: 4px;
+    }
+    .bar-bg {
+      background: #2d3748; border-radius: 4px; height: 10px; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 4px; transition: width .6s ease;
+    }
+    .bar-natural   { background: linear-gradient(90deg, #48bb78, #68d391); }
+    .bar-synthetic { background: linear-gradient(90deg, #ed8936, #fc8149); }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results tab: image grid ── */
+    .img-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .img-card {
+      background: #16213e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .img-card img {
+      width: 100%; display: block;
+      max-height: 220px; object-fit: contain;
+      background: #0f1117;
+      padding: 8px;
+    }
+    .img-card .img-caption {
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: #a0aec0;
+    }
+    .img-card .img-caption strong { color: #e2e8f0; display: block; margin-bottom: 2px; }
+
+    /* ── Training chart ── */
+    #training-chart-wrap { position: relative; height: 280px; }
+
+    /* ── Metric badges ── */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .metric-badge {
+      background: #16213e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .metric-badge .val {
+      font-size: 1.6rem; font-weight: 700; color: #63b3ed;
+    }
+    .metric-badge .lbl {
+      font-size: 0.75rem; color: #718096; margin-top: 4px;
+    }
+
+    /* ── About tab ── */
+    .pipeline {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+      margin: 12px 0;
+    }
+    .pipe-step {
+      background: #16213e; border: 1px solid #2d3748;
+      border-radius: 8px; padding: 8px 14px;
+      font-size: 0.82rem; color: #90cdf4;
+    }
+    .pipe-arrow { color: #4a5568; font-size: 1.1rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { background: #16213e; color: #90cdf4; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-top: 1px solid #2d3748; color: #cbd5e0; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .tag-blue  { background: rgba(49,130,206,.2); color: #63b3ed; }
+    .tag-green { background: rgba(72,187,120,.2); color: #68d391; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔍</div>
+  <div>
+    <h1>AI Image Detection</h1>
+    <p>EfficientNet-B3 · Natural vs Synthetic · hirawaru/animeaidetect</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('detect')">🖼️ Phát hiện</button>
+    <button class="tab-btn" onclick="switchTab('results')">📊 Kết quả</button>
+    <button class="tab-btn" onclick="switchTab('about')">ℹ️ Về mô hình</button>
+  </div>
+
+  <!-- ══════════════ TAB 1: DETECT ══════════════ -->
+  <div id="tab-detect" class="tab-content active">
+
+    <div class="card">
+      <h2>🖼️ Upload ảnh để phân tích</h2>
+
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" />
+        <div class="icon">📁</div>
+        <p>Kéo thả ảnh vào đây hoặc <span>chọn file</span></p>
+        <p style="margin-top:6px; font-size:0.78rem;">JPG, PNG, BMP · Tối đa 5 MB</p>
+      </div>
+
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="preview" />
+      </div>
+
+      <button class="btn-predict" id="btn-predict" disabled>
+        Phân tích ảnh
+      </button>
+    </div>
+
+    <div id="result-box" class="card">
+      <h2>🎯 Kết quả</h2>
+      <div id="result-label" class="result-label"></div>
+
+      <div class="prob-row">
+        <div class="label-row">
+          <span>🌿 Natural (ảnh thực)</span>
+          <span id="prob-natural-txt">—</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill bar-natural" id="bar-natural" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="prob-row" style="margin-top:10px">
+        <div class="label-row">
+          <span>🤖 Synthetic (AI tạo)</span>
+          <span id="prob-synthetic-txt">—</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill bar-synthetic" id="bar-synthetic" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-detect -->
+
+  <!-- ══════════════ TAB 2: RESULTS ══════════════ -->
+  <div id="tab-results" class="tab-content">
+
+    <!-- Metric badges (populated by JS from /training-history) -->
+    <div class="card">
+      <h2>📈 Chỉ số huấn luyện (5 epoch đầu)</h2>
+      <div class="metric-grid" id="metric-grid">
+        <div class="metric-badge"><div class="val" id="m-best-val-acc">—</div><div class="lbl">Best Val Accuracy</div></div>
+        <div class="metric-badge"><div class="val" id="m-best-val-loss">—</div><div class="lbl">Best Val Loss</div></div>
+        <div class="metric-badge"><div class="val" id="m-final-train-acc">—</div><div class="lbl">Final Train Accuracy</div></div>
+        <div class="metric-badge"><div class="val" id="m-epochs">—</div><div class="lbl">Epochs chạy</div></div>
+      </div>
+
+      <!-- Simple SVG chart drawn by JS -->
+      <div id="training-chart-wrap">
+        <svg id="training-svg" width="100%" height="280" style="overflow:visible"></svg>
+      </div>
+      <div style="display:flex;gap:20px;margin-top:8px;font-size:0.8rem;color:#718096;justify-content:center">
+        <span><span style="color:#63b3ed">●</span> Val Accuracy</span>
+        <span><span style="color:#68d391">●</span> Train Accuracy</span>
+        <span><span style="color:#fc8149">●</span> Val Loss ×100</span>
+      </div>
+    </div>
+
+    <!-- EDA images -->
+    <div class="card">
+      <h2>🗂️ Phân tích dữ liệu (EDA)</h2>
+      <div class="img-grid">
+        <div class="img-card">
+          <img src="/results/data_split.png" alt="Data Split" onerror="this.parentElement.style.display='none'" />
+          <div class="img-caption">
+            <strong>Phân chia tập dữ liệu</strong>
+            Train / Validation / Test split
+          </div>
+        </div>
+        <div class="img-card">
+          <img src="/results/image_formats.png" alt="Image Formats" onerror="this.parentElement.style.display='none'" />
+          <div class="img-caption">
+            <strong>Định dạng ảnh</strong>
+            Phân bố các định dạng file trong dataset
+          </div>
+        </div>
+        <div class="img-card">
+          <img src="/results/sample_images.png" alt="Sample Images" onerror="this.parentElement.style.display='none'" />
+          <div class="img-caption">
+            <strong>Ảnh mẫu</strong>
+            Một số ảnh Natural và Synthetic từ dataset
+          </div>
+        </div>
+        <!-- Hiển thị nếu đã chạy evaluate.py -->
+        <div class="img-card" id="cm-card">
+          <img src="/results/confusion_matrix.png" alt="Confusion Matrix" onerror="this.parentElement.style.display='none'" />
+          <div class="img-caption">
+            <strong>Confusion Matrix</strong>
+            Kết quả đánh giá trên tập test
+          </div>
+        </div>
+        <div class="img-card" id="roc-card">
+          <img src="/results/roc_curve.png" alt="ROC Curve" onerror="this.parentElement.style.display='none'" />
+          <div class="img-caption">
+            <strong>ROC Curve</strong>
+            AUC score trên tập test
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-results -->
+
+  <!-- ══════════════ TAB 3: ABOUT ══════════════ -->
+  <div id="tab-about" class="tab-content">
+
+    <div class="card">
+      <h2>🏗️ Kiến trúc hệ thống</h2>
+      <div class="pipeline">
+        <div class="pipe-step">👤 Người dùng</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">📤 Upload ảnh</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">⚙️ Tiền xử lý<br><small>Resize · Normalize</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">🧠 EfficientNet-B3<br><small>Inference</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">📊 Kết quả JSON</div>
+      </div>
+      <p style="font-size:0.82rem;color:#718096;margin-top:8px">
+        Model được tải tự động từ
+        <a href="https://huggingface.co/hirawaru/animeaidetect" target="_blank" style="color:#63b3ed">
+          huggingface.co/hirawaru/animeaidetect
+        </a>
+        nếu không có file cục bộ.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Thông số mô hình</h2>
+      <table>
+        <tr><th>Thông số</th><th>Giá trị</th></tr>
+        <tr><td>Kiến trúc</td><td><span class="tag tag-blue">EfficientNet-B3</span></td></tr>
+        <tr><td>Pretrained</td><td>ImageNet</td></tr>
+        <tr><td>Input size</td><td>224 × 224 (web) · 384 × 384 (training)</td></tr>
+        <tr><td>Số lớp phân loại</td><td>2 (Natural / Synthetic)</td></tr>
+        <tr><td>Dropout</td><td>0.3</td></tr>
+        <tr><td>Optimizer</td><td>Adam · lr=0.001 · weight_decay=1e-4</td></tr>
+        <tr><td>Scheduler</td><td>Cosine Annealing</td></tr>
+        <tr><td>Augmentation</td><td>Flip · Rotation · ColorJitter · Affine</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>📦 Dataset</h2>
+      <table>
+        <tr><th>Tập</th><th>Natural</th><th>Synthetic</th><th>Tổng</th></tr>
+        <tr><td>Train (70%)</td><td>~2,293</td><td>~2,288</td><td>~4,581</td></tr>
+        <tr><td>Validation (15%)</td><td>~491</td><td>~490</td><td>~981</td></tr>
+        <tr><td>Test (15%)</td><td>~491</td><td>~490</td><td>~981</td></tr>
+        <tr><td><strong>Tổng</strong></td><td><strong>3,275</strong></td><td><strong>3,268</strong></td><td><strong>6,543</strong></td></tr>
+      </table>
+    </div>
+
+  </div><!-- /tab-about -->
+
+</div><!-- /container -->
+
+<script>
+// ── Tab switching ──────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'results') loadTrainingChart();
+}
+
+// ── File input / drag-drop ─────────────────────────────────
+const fileInput  = document.getElementById('file-input');
+const dropZone   = document.getElementById('drop-zone');
+const previewWrap = document.getElementById('preview-wrap');
+const previewImg  = document.getElementById('preview-img');
+const btnPredict  = document.getElementById('btn-predict');
+
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    previewWrap.style.display = 'block';
+    btnPredict.disabled = false;
+    document.getElementById('result-box').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Predict ────────────────────────────────────────────────
+btnPredict.addEventListener('click', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  btnPredict.disabled = true;
+  btnPredict.innerHTML = '<span class="spinner"></span>Đang phân tích...';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const res  = await fetch('/predict', { method: 'POST', body: fd });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = null; }
+
+    const box = document.getElementById('result-box');
+    box.style.display = 'block';
+
+    if (!res.ok) {
+      const msg = data?.detail || text || `HTTP ${res.status}`;
+      showError(msg);
+    } else {
+      showResult(data);
+    }
+  } catch (err) {
+    document.getElementById('result-box').style.display = 'block';
+    showError('Lỗi kết nối: ' + (err.message || err));
+  } finally {
+    btnPredict.disabled = false;
+    btnPredict.innerHTML = 'Phân tích ảnh';
+  }
+});
+
+function showResult(data) {
+  // data = { label, prob, all_probs: [natural_prob, synthetic_prob] }
+  const labelEl = document.getElementById('result-label');
+  const isNatural = data.label.toLowerCase() === 'natural';
+  labelEl.className = 'result-label ' + (isNatural ? 'natural' : 'synthetic');
+  labelEl.textContent = isNatural
+    ? `🌿 Natural — Ảnh thực (${(data.prob * 100).toFixed(1)}%)`
+    : `🤖 Synthetic — Ảnh AI tạo (${(data.prob * 100).toFixed(1)}%)`;
+
+  const probs = data.all_probs || [isNatural ? data.prob : 1 - data.prob, isNatural ? 1 - data.prob : data.prob];
+  const pNat = (probs[0] * 100).toFixed(1);
+  const pSyn = (probs[1] * 100).toFixed(1);
+
+  document.getElementById('prob-natural-txt').textContent  = pNat + '%';
+  document.getElementById('prob-synthetic-txt').textContent = pSyn + '%';
+  document.getElementById('bar-natural').style.width   = pNat + '%';
+  document.getElementById('bar-synthetic').style.width = pSyn + '%';
+}
+
+function showError(msg) {
+  const labelEl = document.getElementById('result-label');
+  labelEl.className = 'result-label error';
+  labelEl.textContent = '⚠️ ' + msg;
+}
+
+// ── Training chart (SVG) ───────────────────────────────────
+let chartLoaded = false;
+async function loadTrainingChart() {
+  if (chartLoaded) return;
+  try {
+    const res = await fetch('/training-history');
+    if (!res.ok) return;
+    const h = await res.json();
+    chartLoaded = true;
+    renderChart(h);
+    fillMetrics(h);
+  } catch {}
+}
+
+function fillMetrics(h) {
+  const bestValAcc  = Math.max(...h.val_acc);
+  const bestValLoss = Math.min(...h.val_loss);
+  const finalTrainAcc = h.train_acc[h.train_acc.length - 1];
+  document.getElementById('m-best-val-acc').textContent   = bestValAcc.toFixed(1) + '%';
+  document.getElementById('m-best-val-loss').textContent  = bestValLoss.toFixed(4);
+  document.getElementById('m-final-train-acc').textContent = finalTrainAcc.toFixed(1) + '%';
+  document.getElementById('m-epochs').textContent         = h.train_acc.length;
+}
+
+function renderChart(h) {
+  const svg = document.getElementById('training-svg');
+  const W = svg.parentElement.clientWidth || 700;
+  const H = 260;
+  const PAD = { top: 16, right: 20, bottom: 36, left: 44 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top - PAD.bottom;
+  const n  = h.val_acc.length;
+
+  // Normalise val_loss to 0-100 scale for overlay
+  const maxLoss = Math.max(...h.val_loss);
+  const normLoss = h.val_loss.map(v => (v / maxLoss) * 100);
+
+  const xScale = i => PAD.left + (i / (n - 1)) * cW;
+  const yScale = v => PAD.top + cH - (v / 100) * cH;
+
+  function polyline(vals, color, dash) {
+    const pts = vals.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5"
+      stroke-linejoin="round" stroke-linecap="round" ${dash ? 'stroke-dasharray="5,3"' : ''} />`;
+  }
+  function dots(vals, color) {
+    return vals.map((v, i) =>
+      `<circle cx="${xScale(i)}" cy="${yScale(v)}" r="4" fill="${color}" stroke="#0f1117" stroke-width="1.5"/>`
+    ).join('');
+  }
+
+  // Grid lines
+  let grid = '';
+  for (let y = 0; y <= 100; y += 25) {
+    const yy = yScale(y);
+    grid += `<line x1="${PAD.left}" y1="${yy}" x2="${PAD.left + cW}" y2="${yy}"
+      stroke="#2d3748" stroke-width="1" />`;
+    grid += `<text x="${PAD.left - 6}" y="${yy + 4}" text-anchor="end"
+      font-size="11" fill="#718096">${y}</text>`;
+  }
+  // X axis labels
+  let xLabels = '';
+  for (let i = 0; i < n; i++) {
+    xLabels += `<text x="${xScale(i)}" y="${H - 6}" text-anchor="middle"
+      font-size="11" fill="#718096">E${i + 1}</text>`;
+  }
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = grid + xLabels
+    + polyline(h.val_acc,   '#63b3ed')
+    + polyline(h.train_acc, '#68d391')
+    + polyline(normLoss,    '#fc8149', true)
+    + dots(h.val_acc,   '#63b3ed')
+    + dots(h.train_acc, '#68d391')
+    + dots(normLoss,    '#fc8149');
+}
+</script>
+
+</body>
+</html>
