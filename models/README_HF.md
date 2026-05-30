@@ -26,8 +26,8 @@ model-index:
       name: Image Classification
     metrics:
     - type: accuracy
-      value: 0.73
-      name: Validation Accuracy (5 epochs)
+      value: 0.9189
+      name: Test Accuracy (20 epochs)
 ---
 
 # 🔍 AI Image Detection — Natural vs Synthetic (Anime)
@@ -38,9 +38,54 @@ Mô hình phân loại ảnh nhị phân phát hiện ảnh do AI tạo ra (**Sy
 
 ---
 
-## 🚀 Use this model
+## ⚡ API Integration (Dành cho nhà phát triển)
 
-### Cách 1 — Transformers pipeline (khuyến nghị)
+Bạn có thể tích hợp mô hình này vào ứng dụng của mình thông qua Hugging Face Inference API mà không cần cài đặt môi trường phức tạp.
+
+### 🐍 Python (Sử dụng requests)
+```python
+import requests
+
+API_URL = "https://api-inference.huggingface.co/models/hirawaru/animeaidetect"
+headers = {"Authorization": "Bearer YOUR_HF_TOKEN"}
+
+def query(filename):
+    with open(filename, "rb") as f:
+        data = f.read()
+    response = requests.post(API_URL, headers=headers, data=data)
+    return response.json()
+
+output = query("test.jpg")
+print(output)
+```
+
+### 🌐 JavaScript
+```javascript
+async function query(fileData) {
+	const response = await fetch(
+		"https://api-inference.huggingface.co/models/hirawaru/animeaidetect",
+		{
+			headers: { Authorization: "Bearer YOUR_HF_TOKEN" },
+			method: "POST",
+			body: fileData,
+		}
+	);
+	const result = await response.json();
+	return result;
+}
+```
+
+### 💻 cURL
+```bash
+curl https://api-inference.huggingface.co/models/hirawaru/animeaidetect \
+	-X POST \
+	--data-binary '@image.jpg' \
+	-H "Authorization: Bearer YOUR_HF_TOKEN"
+```
+
+---
+
+## 🚀 Use locally with Transformers
 
 ```python
 from transformers import pipeline
@@ -48,26 +93,11 @@ from transformers import pipeline
 pipe = pipeline(
     "image-classification",
     model="hirawaru/animeaidetect",
-    trust_remote_code=True,   # cần vì dùng custom pipeline
+    trust_remote_code=True,
 )
 
-# Từ file path
 result = pipe("your_image.jpg")
-
-# Từ PIL Image
-from PIL import Image
-result = pipe(Image.open("your_image.jpg"))
-
-# Từ URL
-result = pipe("https://example.com/image.jpg")
-
 print(result)
-# [{"label": "Synthetic", "score": 0.87},
-#  {"label": "Natural",   "score": 0.13}]
-```
-
-```bash
-pip install transformers torch torchvision Pillow
 ```
 
 ### Cách 2 — PyTorch thuần (không cần Transformers)
@@ -161,10 +191,10 @@ uvicorn web.app:app --host 0.0.0.0 --port 8000
 | Optimizer | Adam |
 | Learning Rate | 0.001 |
 | Weight Decay | 1e-4 |
-| Batch Size | 32 |
+| Batch Size | 16 (on CPU) / 32 (on GPU) |
 | Scheduler | CosineAnnealingLR |
 | Early Stopping | patience=10 |
-| Max Epochs | 50 |
+| Max Epochs | 20 (phiên bản hiện tại) |
 | Image Size (train) | 384×384 |
 
 **Augmentation:** RandomResizedCrop · RandomHorizontalFlip · RandomVerticalFlip · RandomRotation · ColorJitter · RandomAffine
@@ -174,12 +204,33 @@ uvicorn web.app:app --host 0.0.0.0 --port 8000
 | Epoch | Train Loss | Train Acc | Val Loss | Val Acc |
 |-------|-----------|-----------|----------|---------|
 | 1 | 0.7219 | 51.89% | 0.7166 | 54.53% |
-| 2 | 0.6606 | 59.90% | 0.6992 | 66.30% |
-| 3 | 0.6475 | 61.06% | 0.5960 | 66.44% |
-| 4 | 0.6204 | 65.69% | 0.5679 | 72.78% |
 | 5 | 0.5947 | 68.65% | 0.5417 | 73.06% |
+| 10 | 0.2240 | 91.14% | 0.2578 | 90.88% |
+| 20 | 0.0508 | 98.30% | 0.5547 | **91.89%** |
 
-> Best Val Accuracy: **73.06%** | Best Val Loss: **0.5417** | Epochs ran: **5** *(đang tiếp tục training)*
+> Best Val Accuracy: **91.89%** | Best Val Loss: **0.2578** (at Epoch 10) | Epochs ran: **20**
+
+---
+
+## 📊 Test Set Metrics
+
+- **Accuracy:** 91.89%
+- **F1-Score:** 91.18%
+- **ROC-AUC:** 97.37%
+
+---
+
+## ⚠️ Limitations
+
+- Chỉ hoạt động tốt với **ảnh anime/illustration**, không phù hợp cho ảnh chụp thực tế.
+- Hiệu suất có thể giảm với các mô hình AI sinh ảnh mới nhất.
+- Không xác định được mô hình AI cụ thể nào đã tạo ra ảnh.
+
+---
+
+## 📄 License
+
+MIT — Phục vụ mục đích nghiên cứu và bảo vệ quyền sáng tác.
 
 ---
 

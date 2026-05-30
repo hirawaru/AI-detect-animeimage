@@ -125,6 +125,40 @@ Model checkpoints được lưu tự động trong `models/checkpoints/` nếu v
 - ✅ Confusion matrix & ROC curves
 - ✅ Inference pipeline
 - ✅ Model export (ONNX support)
+- ✅ **Hugging Face Inference API support**
+
+## 🌐 Hugging Face Integration
+
+Mô hình đã được upload lên Hugging Face Hub: [hirawaru/animeaidetect](https://huggingface.co/hirawaru/animeaidetect)
+
+### Sử dụng Hugging Face Inference API (Không cần cài đặt)
+
+Bạn có thể gọi mô hình từ bất kỳ đâu qua API của Hugging Face:
+
+```python
+import requests
+
+API_URL = "https://api-inference.huggingface.co/models/hirawaru/animeaidetect"
+headers = {"Authorization": "Bearer YOUR_HF_TOKEN"}
+
+def query(filename):
+    with open(filename, "rb") as f:
+        data = f.read()
+    response = requests.post(API_URL, headers=headers, data=data)
+    return response.json()
+
+print(query("test.jpg"))
+```
+
+### Sử dụng với thư viện Transformers
+
+```python
+from transformers import pipeline
+
+pipe = pipeline("image-classification", model="hirawaru/animeaidetect", trust_remote_code=True)
+result = pipe("image.jpg")
+print(result)
+```
 
 ## 📝 License
 

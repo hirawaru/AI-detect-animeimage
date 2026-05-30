@@ -31,6 +31,12 @@ def load_training_history() -> dict | None:
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Upload model to Hugging Face Hub")
+    parser.add_argument("--token", type=str, help="Hugging Face Access Token")
+    parser.add_argument("--repo_id", type=str, default=DEFAULT_REPO_ID, help="Repo ID (e.g. user/model)")
+    args = parser.parse_args()
+
     print("=" * 55)
     print("🚀  UPLOAD MODEL LÊN HUGGING FACE MODEL HUB")
     print("=" * 55)
@@ -43,7 +49,7 @@ def main():
     print(f"✅ Tìm thấy model: {model_path}")
 
     # ── Token ─────────────────────────────────────────────────────────────────
-    token = os.environ.get("HF_TOKEN", "").strip()
+    token = args.token or os.environ.get("HF_TOKEN", "").strip()
     if not token:
         print("\nLấy token tại: https://huggingface.co/settings/tokens")
         print("(Chọn quyền WRITE khi tạo token)")
@@ -60,10 +66,13 @@ def main():
         sys.exit(1)
 
     # ── Repo ID ───────────────────────────────────────────────────────────────
-    print(f"\nRepo ID mặc định: {DEFAULT_REPO_ID}")
-    repo_id = input("Nhập Repo ID (Enter để dùng mặc định): ").strip()
+    repo_id = args.repo_id
     if not repo_id:
-        repo_id = DEFAULT_REPO_ID
+        print(f"\nRepo ID mặc định: {DEFAULT_REPO_ID}")
+        repo_id = input("Nhập Repo ID (Enter để dùng mặc định): ").strip()
+        if not repo_id:
+            repo_id = DEFAULT_REPO_ID
+    
     if "/" not in repo_id:
         print("❌ Repo ID phải có dạng <username>/<repo-name>")
         sys.exit(1)
@@ -100,6 +109,7 @@ def main():
         ("config.json",                "config.json"),
         ("preprocessor_config.json",   "preprocessor_config.json"),
         ("pipeline.py",                "pipeline.py"),
+        ("handler.py",                 "handler.py"),
     ]
 
     for i, (local_name, repo_name) in enumerate(extra_files, start=2):

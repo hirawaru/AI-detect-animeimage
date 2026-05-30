@@ -2,6 +2,7 @@
 Evaluation script for AI Image Detection
 """
 
+import os
 import json
 import yaml
 import numpy as np
@@ -136,12 +137,17 @@ def plot_pr_curve(precision, recall, save_path=None):
     plt.close()
 
 
-def evaluate(config=None, config_path='config.yaml', model_path=None):
+def evaluate(config=None, config_path='config.yaml', model_path=None, results_output_path=None):
     """Main evaluation function"""
     
     if config is None:
         config = load_config(config_path)
     
+    if results_output_path is None:
+        results_output_path = config['output']['results_path']
+    
+    os.makedirs(results_output_path, exist_ok=True)
+
     print("=== AI Image Detection - Evaluation ===")
     
     device = torch.device('cuda' if torch.cuda.is_available() and config['device'] == 'cuda' else 'cpu')
@@ -158,7 +164,11 @@ def evaluate(config=None, config_path='config.yaml', model_path=None):
     if model_path is None:
         model_path = f"{config['output']['checkpoint_path']}/best_model.pth"
     
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    checkpoint = torch.load(model_path, map_location=device)
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        model.load_state_dict(checkpoint)
     model = model.to(device)
     print(f"Loaded model from {model_path}")
     
@@ -189,8 +199,8 @@ def evaluate(config=None, config_path='config.yaml', model_path=None):
     print("\n" + classification_report(labels, preds, target_names=['Natural', 'Synthetic']))
     
     # Save metrics
-    results_path = f"{config['output']['results_path']}/metrics.json"
-    with open(results_path, 'w') as f:
+    results_json_path = f"{results_output_path}/metrics.json"
+    with open(results_json_path, 'w') as f:
         json.dump({
             'accuracy': float(metrics['accuracy']),
             'f1_score': float(metrics['f1_score']),
@@ -198,18 +208,25 @@ def evaluate(config=None, config_path='config.yaml', model_path=None):
             'confusion_matrix': metrics['confusion_matrix'],
             'classification_report': metrics['classification_report']
         }, f, indent=2)
-    print(f"\nMetrics saved to {results_path}")
+    print(f"\nMetrics saved to {results_json_path}")
     
     # Plot results
     plot_confusion_matrix(cm, ['Natural', 'Synthetic'], 
-                         f"{config['output']['results_path']}/confusion_matrix.png")
+                         f"{results_output_path}/confusion_matrix.png")
     plot_roc_curve(metrics['roc_curve']['fpr'], metrics['roc_curve']['tpr'], 
-                   metrics['roc_auc'], f"{config['output']['results_path']}/roc_curve.png")
+                   metrics['roc_auc'], f"{results_output_path}/roc_curve.png")
     plot_pr_curve(metrics['pr_curve']['precision'], metrics['pr_curve']['recall'],
-                  f"{config['output']['results_path']}/pr_curve.png")
+                  f"{results_output_path}/pr_curve.png")
     
     print("\n=== Evaluation Complete ===")
 
 
 if __name__ == '__main__':
-    evaluate()
+    import argparse
+    parser = argparse.ArgumentParser(description='Evaluate AI Image Detection Model')
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to config file')
+    parser.add_argument('--model_path', type=str, default=None, help='Path to model checkpoint')
+    parser.add_argument('--results_path', type=str, default=None, help='Path to save results')
+    args = parser.parse_args()
+    
+    evaluate(config_path=args.config, model_path=args.model_path, results_output_path=args.results_path)

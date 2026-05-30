@@ -10,6 +10,12 @@
     "Natural": 0,
     "Synthetic": 1
   },
+  "custom_pipelines": {
+    "image-classification": {
+      "impl": "pipeline.AIImageDetectionPipeline",
+      "pt": ["AutoModel"]
+    }
+  },
   "image_size": 224,
   "dropout_rate": 0.3,
   "torch_dtype": "float32",
