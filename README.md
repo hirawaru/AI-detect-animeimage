@@ -136,4 +136,4 @@ Hệ thống sẽ chạy tại cổng `8000`.
 - **Model Repo:** [Hugging Face Hub](https://huggingface.co/hirawaru/animeaidetect)
 
 ---
-*Created with ❤️ for the Digital Art Community.*
+
