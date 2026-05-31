@@ -128,12 +128,3 @@ docker-compose up --build
 Hệ thống sẽ chạy tại cổng `8000`.
 
 ---
-
-## 📝 Giấy phép & Liên hệ
-
-- **Môn học:** IE213 - Kỹ thuật phát triển công nghệ Web
-- **License:** Dự án phục vụ mục đích học tập và bảo vệ bản quyền nghệ thuật số.
-- **Model Repo:** [Hugging Face Hub](https://huggingface.co/hirawaru/animeaidetect)
-
----
-
