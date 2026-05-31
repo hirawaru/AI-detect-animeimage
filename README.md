@@ -1,169 +1,139 @@
-# AI-Generated Image Detection Model
+# 🕵️ AI-Generated Image Detector (Anime & Illustration)
 
-Một model deep learning để phát hiện ảnh do AI tạo ra (Synthetic) và ảnh thực (Natural) nhằm bảo vệ quyền sáng tác của các họa sĩ.
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-ee4c2c.svg)](https://pytorch.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Modern-green.svg)](https://fastapi.tiangolo.com/)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow.svg)](https://huggingface.co/hirawaru/animeaidetect)
 
-## 📊 Dataset
+Dự án xây dựng hệ thống học sâu (Deep Learning) chuyên dụng để phân loại ảnh do AI tạo ra (**Synthetic**) và ảnh do họa sĩ vẽ (**Natural**). Mục tiêu chính là bảo vệ quyền sáng tác và giúp cộng đồng nghệ thuật số minh bạch hơn trong việc nhận diện nội dung.
 
-- **Natural images**: ~3,275 ảnh thực chất lượng cao
-- **Synthetic images**: ~3,268 ảnh do AI tạo ra (GAN, Stable Diffusion, DALL-E, v.v.)
-- **Total**: ~6,543 ảnh được cân bằng tốt
+---
 
-## 🏗️ Project Structure
+## 🚀 Điểm nổi bật (Key Results)
 
-```
+Mô hình đã được huấn luyện qua 20 epochs với các chỉ số ấn tượng trên tập dữ liệu Test độc lập:
+
+*   **Accuracy:** `91.89%`
+*   **F1-Score:** `91.18%`
+*   **ROC-AUC:** `97.37%`
+*   **Kiến trúc:** EfficientNet-B3 (Transfer Learning từ ImageNet)
+
+---
+
+## 📊 Kết quả phân tích (Visualizations)
+
+| Confusion Matrix | ROC Curve |
+|:---:|:---:|
+| <img src="results_20epochs/confusion_matrix.png" width="400"> | <img src="results_20epochs/roc_curve.png" width="400"> |
+
+---
+
+## 🏗️ Cấu trúc dự án (Project Structure)
+
+```text
 aidetect/
-├── data/                  # Thư mục dữ liệu
-│   ├── train/            # Dữ liệu huấn luyện
-│   ├── val/              # Dữ liệu validation
-│   └── test/             # Dữ liệu test
-├── src/                  # Source code
-│   ├── __init__.py
-│   ├── dataset.py        # Data loading
-│   ├── model.py          # Model architecture
-│   ├── train.py          # Training script
-│   ├── evaluate.py       # Evaluation metrics
-│   └── inference.py      # Inference pipeline
-├── notebooks/            # Jupyter notebooks
-│   ├── 01_eda.ipynb                    # Exploratory Data Analysis
-│   └── 02_results_analysis.ipynb       # Results visualization
-├── scripts/              # Utility scripts
-│   ├── prepare_data.py   # Split data into train/val/test
-│   └── download_data.py  # Download from sources
-├── models/               # Trained models
-│   └── checkpoints/      # Model checkpoints
-├── results/              # Training results
-│   ├── logs/
-│   ├── metrics.json
-│   └── confusion_matrix.png
-├── config.yaml          # Configuration file
-├── requirements.txt     # Dependencies
-└── README.md           # This file
+├── src/                  # Mã nguồn lõi (AI logic)
+│   ├── model.py          # Kiến trúc mạng EfficientNet-B3/ResNet
+│   ├── dataset.py        # Pipeline xử lý dữ liệu & Augmentation
+│   ├── train.py          # Script huấn luyện chính
+│   └── inference.py      # Lớp dự đoán ảnh đơn lẻ
+├── web/                  # Ứng dụng Web
+│   ├── app.py            # Backend API (FastAPI)
+│   └── index.html        # Giao diện người dùng hiện đại
+├── notebooks/            # Phân tích & Thử nghiệm
+│   ├── 01_eda.ipynb      # Khám phá dữ liệu (EDA)
+│   └── 02_results_analysis.ipynb
+├── scripts/              # Công cụ hỗ trợ
+│   ├── prepare_data.py   # Chia tập dữ liệu (70/15/15)
+│   └── upload_to_hf.py   # Tự động hóa tích hợp Hugging Face
+├── results_20epochs/     # Kết quả huấn luyện chính thức
+│   ├── metrics.json      # Báo cáo thông số chi tiết
+│   └── *.png             # Biểu đồ đánh giá
+├── config.yaml           # Cấu hình hệ thống (Hyperparameters)
+├── Dockerfile            # Đóng gói Container
+└── README.md             # Hướng dẫn này
 ```
 
-## 🚀 Quick Start
+---
 
-### 1. Setup Environment
+## 🛠️ Hướng dẫn cài đặt & Sử dụng
 
+### 1. Cài đặt môi trường
+Yêu cầu Python 3.11+.
 ```bash
-# Create virtual environment
+# Tạo môi trường ảo
 python -m venv venv
-venv\Scripts\activate
+source venv/bin/activate  # Hoặc venv\Scripts\activate trên Windows
 
-# Install dependencies
+# Cài đặt thư viện
 pip install -r requirements.txt
 ```
 
-### 2. Prepare Data
-
+### 2. Sử dụng ứng dụng Web (Local)
+Giao diện trực quan để upload và kiểm tra ảnh ngay lập tức:
 ```bash
-# Split raw data into train/val/test
-python scripts/prepare_data.py
+# Chạy Backend API & Frontend
+uvicorn web.app:app --host 0.0.0.0 --port 8000
 ```
+Truy cập: `http://localhost:8000`
 
-### 3. Train Model
-
+### 3. Huấn luyện lại mô hình
+Nếu bạn có tập dữ liệu mới:
 ```bash
-# Train the model
+# Chia dữ liệu
+python scripts/prepare_data.py
+
+# Bắt đầu training (Tham số chỉnh trong config.yaml)
 python src/train.py
 ```
 
-### 4. Evaluate Model
+---
 
-```bash
-# Evaluate on test set
-python src/evaluate.py
-```
+## 🌐 Tích hợp Hugging Face (Inference Provider)
 
-### 5. Run Inference
+Dự án được triển khai dưới dạng **Inference Provider** tại: [hirawaru/animeaidetect](https://huggingface.co/hirawaru/animeaidetect)
 
-```bash
-# Predict on new images
-python src/inference.py --image_path <path_to_image>
-```
-
-## 📓 Notebooks
-
-- **01_eda.ipynb**: Khám phá dữ liệu, thống kê ảnh, phân tích tính năng
-- **02_results_analysis.ipynb**: Visualize kết quả, confusion matrix, ROC curves
-
-## 🔧 Configuration
-
-Chỉnh sửa `config.yaml` để:
-- Thay đổi paths dữ liệu
-- Chọn model architecture (ResNet50, EfficientNet, Vision Transformer)
-- Điều chỉnh hyperparameters (learning rate, batch size, epochs)
-- Cấu hình augmentation
-
-## 📈 Model Performance
-
-| Metric | Value |
-|--------|-------|
-| Accuracy | - |
-| Precision | - |
-| Recall | - |
-| F1-Score | - |
-| ROC-AUC | - |
-
-*(Sẽ cập nhật sau huấn luyện)*
-
-## 🎯 Models Supported
-
-- **ResNet50**: Nhanh, khả năng tổng quát hóa tốt
-- **EfficientNet B3**: Cân bằng tốt giữa accuracy và tốc độ
-- **Vision Transformer (ViT)**: State-of-the-art accuracy nhưng cần GPU mạnh
-
-## 💾 Checkpointing
-
-Model checkpoints được lưu tự động trong `models/checkpoints/` nếu validation loss cải thiện.
-
-## 🔍 Features
-
-- ✅ Transfer learning với pretrained models
-- ✅ Data augmentation
-- ✅ Early stopping
-- ✅ Tensorboard logging
-- ✅ Confusion matrix & ROC curves
-- ✅ Inference pipeline
-- ✅ Model export (ONNX support)
-- ✅ **Hugging Face Inference API support**
-
-## 🌐 Hugging Face Integration
-
-Mô hình đã được upload lên Hugging Face Hub: [hirawaru/animeaidetect](https://huggingface.co/hirawaru/animeaidetect)
-
-### Sử dụng Hugging Face Inference API (Không cần cài đặt)
-
-Bạn có thể gọi mô hình từ bất kỳ đâu qua API của Hugging Face:
-
+### Gọi API bằng Python (Không cần cài đặt mô hình)
 ```python
 import requests
 
 API_URL = "https://api-inference.huggingface.co/models/hirawaru/animeaidetect"
 headers = {"Authorization": "Bearer YOUR_HF_TOKEN"}
 
-def query(filename):
+def predict(filename):
     with open(filename, "rb") as f:
         data = f.read()
-    response = requests.post(API_URL, headers=headers, data=data)
-    return response.json()
+    return requests.post(API_URL, headers=headers, data=data).json()
 
-print(query("test.jpg"))
+print(predict("test_image.jpg"))
 ```
 
-### Sử dụng với thư viện Transformers
-
-```python
-from transformers import pipeline
-
-pipe = pipeline("image-classification", model="hirawaru/animeaidetect", trust_remote_code=True)
-result = pipe("image.jpg")
-print(result)
+### Sử dụng lệnh cURL
+```bash
+curl https://api-inference.huggingface.co/models/hirawaru/animeaidetect \
+    -X POST --data-binary '@my_image.jpg' \
+    -H "Authorization: Bearer YOUR_HF_TOKEN"
 ```
 
-## 📝 License
+---
 
-Phục vụ mục đích bảo vệ quyền sáng tác.
+## 🐳 Docker Deployment
 
-## 👥 Author
+Đóng gói và chạy ứng dụng trong 1 câu lệnh (Tự động tải model từ HF Hub):
 
-Created for AI-generated content detection project
+```bash
+# Build & Run
+docker-compose up --build
+```
+Hệ thống sẽ chạy tại cổng `8000`.
+
+---
+
+## 📝 Giấy phép & Liên hệ
+
+- **Môn học:** IE213 - Kỹ thuật phát triển công nghệ Web
+- **License:** Dự án phục vụ mục đích học tập và bảo vệ bản quyền nghệ thuật số.
+- **Model Repo:** [Hugging Face Hub](https://huggingface.co/hirawaru/animeaidetect)
+
+---
+*Created with ❤️ for the Digital Art Community.*
